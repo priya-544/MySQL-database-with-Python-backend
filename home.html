@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Email List</title>
+    <link rel="stylesheet" href="/static/home1.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script>
+        function toggleDropdown() {
+        document.getElementById("profileDropdown").classList.toggle("show");
+    }
+    window.onclick = function(event) {
+        if (!event.target.matches('.profile-icon')) {
+            var dropdowns = document.getElementsByClassName("dropdown-menu");
+            for (var i = 0; i < dropdowns.length; i++) {
+                var openDropdown = dropdowns[i];
+                if (openDropdown.classList.contains('show')) {
+                    openDropdown.classList.remove('show');
+                }
+            }
+        }
+    }
+    function toggleSections() {
+        const selectedChoice = "{{ selected_choice if selected_choice else '' }}";
+        const chooseSection = document.getElementById('choose-section');
+        const uploadSection = document.getElementById('upload-section');
+
+        if (selectedChoice) {
+            chooseSection.style.display = 'none';
+            uploadSection.style.display = 'block';
+        } else {
+            chooseSection.style.display = 'block';
+            uploadSection.style.display = 'none';
+        }
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+    toggleSections();
+
+    const filePreviewBtn = document.getElementById('preview-btn');
+    const rightSection = document.querySelector(".right-section");
+    
+    if (filePreviewBtn) {
+        filePreviewBtn.addEventListener('click', function() {
+            const mainContainer = document.querySelector('.main-container');
+            mainContainer.classList.add('preview-mode');
+            const fileInput = document.getElementById('file-input');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('Please select a file first.');
+                return;
+            }
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/preview', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const previewContainer = document.getElementById('preview-container');
+                const previewTableBody = document.getElementById('preview-table').querySelector('tbody');
+                previewTableBody.innerHTML = '';
+
+                if (data.preview && data.preview.length > 0) {
+                    data.preview.forEach(row => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `<td>${row.Email}</td><td>${row.Name}</td><td>${row.Status}</td>`;
+                        if (row.Status === "Valid") {
+                            tr.classList.add("valid-row");
+                        } else {
+                            tr.classList.add("invalid-row");
+                        }
+
+                        previewTableBody.appendChild(tr);
+                    });
+
+                    previewContainer.classList.add('show');  
+                    rightSection.classList.add('show');
+                    updateToEmail();
+                } else {
+                    previewContainer.classList.remove('show');
+                    rightSection.classList.remove('show');
+                    alert('No data found in file.');
+                }
+            })
+            .catch(err => {
+                alert('Error during preview: ' + err);
+            });
+        });
+    }
+
+    const manualPreviewBtn = document.getElementById('manual-preview-btn');
+    if (manualPreviewBtn) {
+        manualPreviewBtn.addEventListener('click', function() {
+            const mainContainer = document.querySelector('.main-container');
+            mainContainer.classList.add('preview-mode');
+            const emails = document.getElementById('manual_emails').value.split(',');
+            const names = document.getElementById('manual_names').value.split(',');
+
+            const previewContainer = document.getElementById('preview-container');
+            const previewTableBody = document.getElementById('preview-table').querySelector('tbody');
+            previewTableBody.innerHTML = '';
+
+            if (emails.length && names.length && emails[0].trim() !== '' && names[0].trim() !== '') {
+                function isValidEmail(email) {
+                    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    return regex.test(email);
+                }
+
+                for (let i = 0; i < Math.max(emails.length, names.length); i++) {
+                    const email = emails[i] ? emails[i].trim() : '';
+                    const name = names[i] ? names[i].trim() : '';
+                    const status = isValidEmail(email) ? "Valid" : "Invalid";
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td>${email}</td><td>${name}</td><td>${status}</td>`;
+
+                    if (status === "Valid") {
+                        tr.classList.add("valid-row");
+                    } else {
+                        tr.classList.add("invalid-row");
+                    }
+
+                    previewTableBody.appendChild(tr);
+                }
+                previewContainer.classList.add('show');
+                rightSection.classList.add('show');
+                updateToEmail();
+            } else {
+                previewContainer.classList.remove('show');
+                rightSection.classList.remove('show');
+                alert('Please enter emails and names correctly.');
+            }
+        });
+    }
+
+    const addSubjectButtons = document.querySelectorAll('.upload-button, [name="manual_submit"]');
+    addSubjectButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            updateToEmail();
+            setTimeout(() => {
+                const target = document.getElementById('middlesection');
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 200);
+        });
+    });
+});
+document.addEventListener("DOMContentLoaded", function() {
+    const subjectInput = document.getElementById("subject");
+    const bodyInput = document.getElementById("body");
+    const senderInput = document.getElementById("sender_email");
+    const attachmentInput = document.getElementById("attachment");
+    const previewSubject = document.getElementById("preview-subject");
+    const previewBody = document.getElementById("preview-body");
+    const previewFrom = document.getElementById("preview-from");
+    const previewTo = document.getElementById("preview-to");
+    const previewAttachment = document.getElementById("preview-attachment");
+
+    subjectInput.addEventListener("input", function() {
+        previewSubject.textContent = subjectInput.value || "Your Subject Here";
+    });
+
+    bodyInput.addEventListener("input", function() {
+        previewBody.textContent = bodyInput.value || "Your email content will appear here...";
+    });
+
+    senderInput.addEventListener("input", function() {
+        previewFrom.textContent = senderInput.value || "your@email.com";
+    });
+
+    function updateToEmail() {
+        let firstEmail = "";
+        const manualEmails = document.getElementById("manual_emails").value.split(",");
+        const previewTable = document.getElementById("preview-table");
+        
+        if (manualEmails.length > 0 && manualEmails[0].trim() !== "") {
+            firstEmail = manualEmails[0].trim();
+        } else {
+            const firstRow = previewTable.querySelector("tbody tr:first-child");
+            if (firstRow) {
+                firstEmail = firstRow.cells[0].textContent;
+            }
+        }
+        previewTo.textContent = firstEmail || "recipient@email.com";
+    }
+
+    document.getElementById("file-input").addEventListener("change", function() {
+        updateToEmail();
+    });
+
+    document.getElementById("manual-preview-btn").addEventListener("click", function() {
+        updateToEmail();
+    });
+
+    attachmentInput.addEventListener("change", function() {
+        if (attachmentInput.files.length > 0) {
+            previewAttachment.textContent = attachmentInput.files[0].name;
+        } else {
+            previewAttachment.textContent = "None";
+        }
+    });
+});
+document.addEventListener("DOMContentLoaded", function () {
+    if (window.location.hash === "#subject") {
+        const subjectSection = document.getElementById("subject");
+        if (subjectSection) {
+            subjectSection.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+    }
+});
+    </script>
+</head>
+<body>
+    <div class="header">
+        <div class="welcome-message">Welcome, {{ user_name }}!</div>
+        <div class="header-icons">
+            <div class="notification-icon">🔔 <span class="badge">3</span></div>
+            <div class="profile-menu">
+                <img src="/static/profile_icon.png" alt="Profile" class="profile-icon" onclick="toggleDropdown()">
+                <div class="dropdown-menu" id="profileDropdown">
+                    <a href="/profile">View Profile</a>
+                    <form action="/logout" method="get">
+                        <button type="submit">Logout</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <main>
+    <div id="choose-section" class="choose-section" {% if selected_choice %}style="display:none;"{% endif %}>
+        <h2>Please Choose an Option</h2>
+        <form action="/" method="post">
+            <label for="choice">Select an Option:</label>
+            <select name="choice" id="choice" required onchange="toggleSections()">
+                <option value="" disabled {% if not selected_choice %}selected{% endif %}>--Choose an option--</option>
+                <option value="Meeting Request" {% if selected_choice == "Meeting Request" %}selected{% endif %}>Meeting Request</option>
+                <option value="Send Email" {% if selected_choice == "Send Email" %}selected{% endif %}>Send Email</option>
+            </select>
+            <input type="hidden" name="selected_choice" id="selected-choice" value="{{ selected_choice }}">
+            <button type="submit" name="submit_choice">Submit</button>
+        </form>
+    </div>
+    
+    <div class="main-container" id="upload-section" {% if not selected_choice %}style="display:none;"{% endif %}>
+        <div class="selected-option-container">
+        {% if selected_choice %}
+            <p>You selected: <strong>{{ selected_choice }}</strong></p>
+        {% endif %}
+        <form action="/" method="post" onsubmit="sessionStorage.removeItem('selected_choice');">
+            <button type="submit" name="reset_choice">Select Another Option</button>
+        </form>
+    </div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul>
+                    {% for category, message in messages %}
+                        <li class="{{ category }}">{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+        <div class="first-part">
+        <div class="left-section">
+        <form id="upload-form" action="/" method="post" enctype="multipart/form-data">
+            <h4 class="upload-title">Upload Excel File containing Emails and Names</h4>
+            <div class="upload-row">
+                <input type="file" id="file-input" name="file" required>
+                <button type="button" class="preview-button" id="preview-btn">Preview</button>
+                <!-- <button type="submit" class="upload-button" name="upload_file">Add Subject and Body</button> -->
+                <button type="submit" class="upload-button" name="upload_file" onclick="location.hash='subject';">Add Subject & Body</button>
+                <button type="button" class="download-button" onclick="window.location.href='/download-template'"><i class="fa fa-download"></i> Template</button>
+            </div>
+            <label for="cc">CC (optional):</label>
+            <input type="text" name="cc" id="cc_upload" placeholder="Comma-separated emails"><br><br>
+            <label for="bcc">BCC (optional):</label>
+            <input type="text" name="bcc" id="bcc_upload" placeholder="Comma-separated emails"><br><br>
+        </form>
+
+        <h4>Enter Emails and Names Manually(comma-separated):</h4>
+        <form action="/" method="post">
+            <label for="manual_emails">Email Addresses:</label><br>
+            <textarea id="manual_emails" name="manual_emails" placeholder="Comma-separated emails" rows="3" cols="50"></textarea><br><br>
+            <label for="manual_names">Names:</label><br>
+            <textarea id="manual_names" name="manual_names" placeholder="Comma-separated names" rows="3" cols="50"></textarea><br><br>
+            <label for="cc">CC (optional):</label>
+            <input type="text" id="cc" name="cc" placeholder="Comma-separated emails"><br><br>
+            <label for="bcc">BCC (optional):</label>
+            <input type="text" id="bcc" name="bcc"placeholder="Comma-separated emails"><br><br>
+            <button type="button" class="preview-button" id="manual-preview-btn">Preview</button>
+            <button type="submit" name="manual_submit" class="upload-button">Add Subject and Body</button>
+        </form>
+        </div>
+        <!-- Right Section (Preview Table) -->
+<div class="right-section">
+    <!-- {% if log_file_exists %} -->
+        <!-- <a href="/download-log" class="btn btn-warning">Download Log File</a> -->
+                    <!-- {% endif %} -->
+    <!-- Preview Section -->
+    <div id="preview-container">
+        <a href="/download-log" class="btn-warning">Download Log File</a>
+        <h3>Preview</h3>
+        <table border="1" id="preview-table">
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>Name</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Preview content will load here -->
+            </tbody>
+        </table>
+        <br>
+        
+
+    </div>
+    
+</div>
+    </div>
+    <!-- Middle Section (Add Subject & Body) -->
+    <div class="middle-section" id="middlesection">
+        <div class="addInput">
+            <h1>{{ 'Schedule a Meeting' if selected_choice == 'Meeting Request' else 'Add Email Details' }}</h1>
+    <!-- Display uploaded file or manually entered emails -->
+    {% if filepath == 'manual' %}
+    <p>Manually Entered Emails: {{ session['manual_emails']|join(', ') }}</p>
+    {% else %}
+    <p>Uploaded File: {{ filepath }}</p>
+    {% endif %}
+    <form action="/add_subject_body/{{ filepath }}" method="post" enctype="multipart/form-data">
+        <input type="hidden" name="selected_choice" value="{{ selected_choice }}">
+        <label for="sender_email">Sender Email:</label>
+        <input type="email" id="sender_email" name="sender_email" required><br><br>
+        <label for="subject">Subject:</label>
+        <input type="text" id="subject" name="subject" required><br><br>
+        <label for="body">Body:</label><br>
+        <textarea id="body" name="body" rows="4" cols="50" required></textarea><br><br>
+      
+        {% if selected_choice == 'Meeting Request' %}
+        <div id="calendar-request">
+            <h2>Meeting Details</h2>
+            <label for="meeting_date">Meeting Date and Time:</label>
+            <input type="datetime-local" id="meeting_date" name="meeting_date" required><br><br>
+
+            <label for="meeting_duration">Duration (in minutes):</label>
+            <input type="number" id="meeting_duration" name="meeting_duration" required><br><br>
+
+            <input type="hidden" name="meeting_request" value="true">
+        </div>
+        {% endif %}
+
+        <label for="attachment">Attachment (optional):</label><br>
+        <input type="file" id="attachment" name="attachment"><br><br>
+        <label for="schedule_time">Schedule Time (optional):</label>
+        <input type="datetime-local" id="schedule_time" name="schedule_time"><br><br>
+        
+        <button type="submit" class="upload-button">Send Email</button>
+    </form>
+    </div>
+    <div class="email-preview-container">
+        <h3>Email Preview</h3>
+        <div class="email-preview">
+            <div class="email-header">
+                <span class="logo">📩</span>
+                <div class="email-info">
+                    <strong>From:</strong> <span id="preview-from">your@email.com</span><br><br>
+                    <!-- <strong>To:</strong> <span id="preview-to">recipient@email.com</span><br><br> -->
+                    <strong>To:</strong> <span id="preview-to">{{ first_email if first_email else 'recipient@email.com' }}</span><br><br>
+
+                    <strong>Subject:</strong> <span id="preview-subject">Your Subject Here</span>
+                </div>
+            </div>
+            <div class="email-body">
+                <p id="preview-body">Your email content will appear here...</p>
+            </div>
+            <div class="email-attachment">
+                <strong>Attachment:</strong> <span id="preview-attachment">None</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div> 
+</main>
+<footer class="footer">
+    <p>&copy; 2025 SiliconMount Tech Services Pvt Ltd. All rights reserved.</p>
+</footer>
+
+</body>
+</html>
