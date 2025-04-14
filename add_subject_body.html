@@ -1,0 +1,93 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Subject and Body</title>
+    <link rel="stylesheet" href="/static/main_body_sub.css">
+</head>
+<body>
+    <h1>Add Email Details</h1>
+    <form action="/add_subject_body/{{ filepath }}" method="post" enctype="multipart/form-data">
+        <label for="subject">Subject:</label><br>
+        <input type="text" id="subject" name="subject" required><br><br>
+        
+        <label for="body">Body:</label><br>
+        <textarea id="body" name="body" rows="4" cols="50" required></textarea><br><br>
+        
+        <label for="attachment">Attachment (optional):</label><br>
+        <input type="file" id="attachment" name="attachment"><br><br>
+        
+        <label for="schedule_time">Schedule Time (optional):</label><br>
+        <input type="datetime-local" id="schedule_time" name="schedule_time"><br><br>
+        
+        <label for="sender_email">Sender Email:</label><br>
+        <input type="email" id="sender_email" name="sender_email" required><br><br>
+        
+        <button type="submit">Submit</button>
+    </form>
+</body>
+</html> -->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Subject and Body</title>
+    <link rel="stylesheet" href="/static/main_body_sub.css">
+</head>
+<body>
+
+    <h1>{{ 'Schedule a Meeting' if selected_choice == 'Meeting Request' else 'Add Email Details' }}</h1>
+    <!-- Display uploaded file or manually entered emails -->
+    {% if filepath == 'manual' %}
+    <p>Manually Entered Emails: {{ session['manual_emails']|join(', ') }}</p>
+    {% else %}
+    <p>Uploaded File: {{ filepath }}</p>
+    {% endif %}
+
+    <form action="/add_subject_body/{{ filepath }}" method="post" enctype="multipart/form-data">
+
+        <input type="hidden" name="selected_choice" value="{{ selected_choice }}">
+
+        <!-- Subject -->
+        <label for="subject">Subject:</label><br>
+        <input type="text" id="subject" name="subject" required><br><br>
+        
+        <!-- Body -->
+        <label for="body">Body:</label><br>
+        <textarea id="body" name="body" rows="4" cols="50" required></textarea><br><br>
+        
+        <!-- Calendar Request Section -->
+        <!-- Meeting Details -->
+        {% if selected_choice == 'Meeting Request' %}
+        <div id="calendar-request">
+            <h2>Meeting Details</h2>
+            <label for="meeting_date">Meeting Date and Time:</label><br>
+            <input type="datetime-local" id="meeting_date" name="meeting_date" required><br><br>
+
+            <label for="meeting_duration">Duration (in minutes):</label><br>
+            <input type="number" id="meeting_duration" name="meeting_duration" required><br><br>
+
+            <input type="hidden" name="meeting_request" value="true">
+        </div>
+        {% endif %}
+
+        <!-- Attachment -->
+        <label for="attachment">Attachment (optional):</label><br>
+        <input type="file" id="attachment" name="attachment"><br><br>
+        
+        <!-- Schedule Time -->
+        <label for="schedule_time">Schedule Time (optional):</label><br>
+        <input type="datetime-local" id="schedule_time" name="schedule_time"><br><br>
+        
+        <!-- Sender Email -->
+        <label for="sender_email">Sender Email:</label><br>
+        <input type="email" id="sender_email" name="sender_email" required><br><br>
+        
+        <button type="submit">Submit</button>
+    </form>
+</body>
+</html>
